@@ -19,7 +19,6 @@ const Provider = ({ children }) => {
     if (!isLoaded) return;
     
     // Don't redirect if user is on dedicated auth pages - let them complete signup/signin first
-    // Note: Landing page (/) uses modals, so we allow redirects there after signup completes
     const isDedicatedAuthPage = pathname?.includes('/sign-in') || pathname?.includes('/sign-up');
     if (isDedicatedAuthPage) {
       console.log("⏸️ User on dedicated auth page, skipping redirect");
@@ -64,10 +63,10 @@ const Provider = ({ children }) => {
       const apiResponse = await syncUserToDatabase(userData);
       console.log("📥 API response:", apiResponse);
 
-      // Check if API call failed (returned null)
+      // Check if API call failed (returned null) - user will be signed out
       if (!apiResponse) {
-        console.error("❌ Account creation failed, user will be signed out");
-        return; // Exit early, user will be signed out by syncUserToDatabase
+        console.error("❌ Account creation/validation failed, user signed out");
+        return; // Exit early, user is already signed out
       }
 
       // STEP 3: Use the role from API response (which has the correct role from database)
@@ -122,10 +121,10 @@ const Provider = ({ children }) => {
         // Display error message to user
         alert(errorMessage);
         
-        // Sign out the user since they can't proceed with this account
-        // This will redirect them back to the sign-in page
+        // Sign out the user immediately since they can't proceed with this account
         if (signOut) {
-          signOut().catch(console.error);
+          await signOut();
+          console.log("🚪 User signed out due to email conflict");
         }
         
         // Return null to indicate failure
@@ -134,6 +133,12 @@ const Provider = ({ children }) => {
     } catch (error) {
       console.error("❌ Failed to sync user:", error);
       alert("An error occurred while creating your account. Please try again.");
+      
+      // Sign out on error
+      if (signOut) {
+        await signOut().catch(console.error);
+      }
+      
       return null;
     }
   };

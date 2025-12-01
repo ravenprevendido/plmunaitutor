@@ -38,14 +38,14 @@ export async function POST(req) {
 
     // SECURITY: Validate email uniqueness across both tables
     
-    // Case 1: User exists in usersTable
+    // Case 1: User exists in usersTable (SIGN IN scenario)
     if (existingUser) {
-      // If they're signing in with the same role (or no role specified), allow it
-      if (existingUser.role === requestedRole || !requestedRole) {
+      // If they're signing in with the same role, allow it
+      if (existingUser.role === requestedRole || !requestedRole || !role) {
         console.log("✅ User exists (SIGN IN):", existingUser);
         return NextResponse.json(existingUser, { status: 200 });
       }
-      // If they're trying to use a different role, prevent it with specific error message
+      // If they're trying to sign in with a different role, prevent it
       console.log(`❌ SECURITY: Email ${email} already exists as ${existingUser.role}, cannot create ${requestedRole} account`);
       return NextResponse.json({ 
         error: `The email you used to create the ${requestedRole} account has already been used.`

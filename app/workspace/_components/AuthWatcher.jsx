@@ -84,6 +84,7 @@ export default function AuthWatcher() {
   }, [isLoaded, user, userDetail]);
 
   useEffect(() => {
+    // Don't show welcome message if user is not loaded, doesn't exist, or we've already shown it
     if (!isLoaded || !user || hasShownToast.current || !userRole) {
       if (!isLoaded || !user) {
         hasShownToast.current = false;
@@ -91,6 +92,20 @@ export default function AuthWatcher() {
         fetchedRoleOnce.current = false;
         setUserRole(null);
       }
+      return;
+    }
+
+    // CRITICAL: Only show welcome message if userDetail exists and is valid
+    // This ensures the account was successfully created/validated in the database
+    // If userDetail is null/undefined, it means validation failed and user should be signed out
+    if (!userDetail) {
+      console.log("⏸️ AuthWatcher: UserDetail not available, skipping welcome message (account may be invalid)");
+      return;
+    }
+
+    // Additional check: Make sure userDetail has a valid role
+    if (!userDetail.role) {
+      console.log("⏸️ AuthWatcher: UserDetail has no role, skipping welcome message");
       return;
     }
 
@@ -118,7 +133,7 @@ export default function AuthWatcher() {
     } catch (error) {
       console.warn('Unable to clear pendingRole from localStorage', error);
     }
-  }, [isLoaded, user, userRole]);
+  }, [isLoaded, user, userRole, userDetail]);
 
   return null;
 }
