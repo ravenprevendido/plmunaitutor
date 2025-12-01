@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
+  let requestedRole = 'account'; // Default for error messages
   try {
     console.log("🎯 API USER POST CALLED");
     
@@ -19,36 +20,44 @@ export async function POST(req) {
     const { email, name, role } = await req.json();
     console.log("Request body:", { email, name, role });
     const safeName = name?.trim() || user.firstName || user.username || email?.split("@")[0] || "User";
-    const requestedRole = role || 'student';
+    requestedRole = role || 'student';
     
-    // STEP 1: Check if user already exists in usersTable (SIGN IN scenario)
+    // STEP 1: Check if user already exists in usersTable
     const existingUser = await db
       .select()
       .from(usersTable)
       .where(eq(usersTable.email, email))
       .then(rows => rows[0]);
 
-    // If user exists, return them immediately (SIGN IN - no role validation needed)
-    if (existingUser) {
-      console.log("✅ User exists (SIGN IN):", existingUser);
-      return NextResponse.json(existingUser, { status: 200 });
-    }
-
-    // STEP 2: User doesn't exist - this is SIGN UP scenario
-    // Now validate role conflicts before creating new account
-    
-    // Check if email exists in teachersTable
+    // STEP 2: Check if email exists in teachersTable
     const existingTeacher = await db
       .select()
       .from(teachersTable)
       .where(eq(teachersTable.email, email))
       .then(rows => rows[0]);
 
-    // SECURITY: If email exists as teacher, cannot create student account
-    if (existingTeacher && requestedRole === 'student') {
-      console.log(`❌ SECURITY: Email ${email} already exists as teacher, cannot create as student`);
+    // SECURITY: Validate email uniqueness across both tables
+    
+    // Case 1: User exists in usersTable
+    if (existingUser) {
+      // If they're signing in with the same role (or no role specified), allow it
+      if (existingUser.role === requestedRole || !requestedRole) {
+        console.log("✅ User exists (SIGN IN):", existingUser);
+        return NextResponse.json(existingUser, { status: 200 });
+      }
+      // If they're trying to use a different role, prevent it with specific error message
+      console.log(`❌ SECURITY: Email ${email} already exists as ${existingUser.role}, cannot create ${requestedRole} account`);
       return NextResponse.json({ 
-        error: `This email is already registered as a teacher. Each email can only be used for one account type. Please use a different email or sign in with your existing teacher account.`
+        error: `The email you used to create the ${requestedRole} account has already been used.`
+      }, { status: 409 });
+    }
+
+    // Case 2: Email exists in teachersTable but not in usersTable
+    // This prevents creating any account (student or teacher) with an email that's already used as a teacher
+    if (existingTeacher) {
+      console.log(`❌ SECURITY: Email ${email} already exists as teacher, cannot create ${requestedRole} account`);
+      return NextResponse.json({ 
+        error: `The email you used to create the ${requestedRole} account has already been used.`
       }, { status: 409 });
     }
 
@@ -72,7 +81,7 @@ export async function POST(req) {
     // Handle database constraint violations (unique email)
     if (error.message && (error.message.includes('unique') || error.message.includes('duplicate'))) {
       return NextResponse.json({ 
-        error: "This email is already registered. Each email can only be used for one account type (student or teacher). Please use a different email or sign in with your existing account."
+        error: `The email you used to create the ${requestedRole} account has already been used.`
       }, { status: 409 });
     }
     

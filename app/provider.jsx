@@ -7,7 +7,7 @@ import { UserDetailContext } from '@/context/UserDetailContext';
 
 const Provider = ({ children }) => {
   const { isLoaded, isSignedIn, user } = useUser();
-  const { getToken } = useAuth();
+  const { getToken, signOut } = useAuth();
   const [userDetail, setUserDetail] = useState();
   const [hasHandledRedirect, setHasHandledRedirect] = useState(false);
   const router = useRouter();
@@ -18,12 +18,19 @@ const Provider = ({ children }) => {
     
     if (!isLoaded) return;
     
+    // Don't redirect if user is on dedicated auth pages - let them complete signup/signin first
+    // Note: Landing page (/) uses modals, so we allow redirects there after signup completes
+    const isDedicatedAuthPage = pathname?.includes('/sign-in') || pathname?.includes('/sign-up');
+    if (isDedicatedAuthPage) {
+      console.log("⏸️ User on dedicated auth page, skipping redirect");
+      return;
+    }
+    
     if (isSignedIn && user && !hasHandledRedirect) {
       console.log("✅ User authenticated:", user.id);
       handleUserRedirect();
 
       // add delay timer
-
       const timer = setTimeout(() => {
         handleUserRedirect();
       }, 1000)
@@ -56,6 +63,12 @@ const Provider = ({ children }) => {
       // STEP 2: Sync to database
       const apiResponse = await syncUserToDatabase(userData);
       console.log("📥 API response:", apiResponse);
+
+      // Check if API call failed (returned null)
+      if (!apiResponse) {
+        console.error("❌ Account creation failed, user will be signed out");
+        return; // Exit early, user will be signed out by syncUserToDatabase
+      }
 
       // STEP 3: Use the role from API response (which has the correct role from database)
       const finalRole = apiResponse?.role || pendingRole || 'student';
@@ -101,12 +114,27 @@ const Provider = ({ children }) => {
         console.log("✅ User synced to database:", result);
         return result; // RETURN THE API RESPONSE
       } else {
-        console.error("❌ API call failed");
-        return userData;
+        // Handle error response
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || 'Failed to create account';
+        console.error("❌ API call failed:", errorMessage);
+        
+        // Display error message to user
+        alert(errorMessage);
+        
+        // Sign out the user since they can't proceed with this account
+        // This will redirect them back to the sign-in page
+        if (signOut) {
+          signOut().catch(console.error);
+        }
+        
+        // Return null to indicate failure
+        return null;
       }
     } catch (error) {
       console.error("❌ Failed to sync user:", error);
-      return userData;
+      alert("An error occurred while creating your account. Please try again.");
+      return null;
     }
   };
 
