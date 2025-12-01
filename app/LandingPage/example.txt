@@ -1,0 +1,21 @@
+// config/schema.js - ADD THESE
+export const coursesTable = pgTable("courses", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }),
+  teacher_name: varchar("teacher_name", { length: 255 }),
+  teacher_id: integer("teacher_id").references(() => usersTable.id),
+  status: varchar("status", { length: 50 }).default("active"),
+  created_at: timestamp("created_at").defaultNow(),
+});
+
+export const enrollmentsTable = pgTable("enrollments", {
+  id: serial("id").primaryKey(),
+  student_id: integer("student_id").references(() => usersTable.id).notNull(),
+  course_id: integer("course_id").references(() => coursesTable.id).notNull(),
+  enrolled_at: timestamp("enrolled_at").defaultNow(),
+  progress: integer("progress").default(0),
+}, (table) => ({
+  uniqueEnrollment: unique().on(table.student_id, table.course_id)
+}));
