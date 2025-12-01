@@ -578,7 +578,7 @@ const AdminDashboard = () => {
                 </div>
                 <div className="text-left hidden md:block">
                   <p className="text-sm font-medium">{adminUser?.name || "Admin"}</p>
-                  <p className="text-xs text-gray-400">Administrator</p>
+                  <p className="text-xs text-gray-400"></p>
                 </div>
                 <span className="text-gray-400">▼</span>
               </button>
@@ -591,20 +591,6 @@ const AdminDashboard = () => {
                     <p className="text-xs text-gray-400">{adminUser?.email}</p>
                   </div>
                   <div className="p-1">
-                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-[#1f2937] rounded-md transition-colors">
-                      👤 Profile Settings
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-[#1f2937] rounded-md transition-colors">
-                      ⚙️ System Settings
-                    </button>
-                    <button 
-                      onClick={() => setActiveView('analytics')}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-[#1f2937] rounded-md transition-colors"
-                    >
-                      📊 Analytics
-                    </button>
-                  </div>
-                  <div className="p-1 border-t border-gray-800">
                     <button 
                       onClick={handleLogout}
                       className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-900 hover:bg-opacity-20 rounded-md transition-colors flex items-center gap-2"

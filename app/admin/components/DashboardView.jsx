@@ -107,8 +107,13 @@ const DashboardView = () => {
   const [monthlyActiveLearners, setMonthlyActiveLearners] = useState([]);
   const [popularCourses, setPopularCourses] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
+  const [completionData, setCompletionData] = useState({
+    completed: 75,
+    in_progress: 25
+  });
+  const [topPerformers, setTopPerformers] = useState([]);
 
-  // Fetch monthly active learners, popular courses, and recent activity
+  // Fetch monthly active learners, popular courses, recent activity, and completion rate
   useEffect(() => {
     const fetchDashboardCharts = async () => {
       try {
@@ -132,6 +137,17 @@ const DashboardView = () => {
           const activityData = await activityResponse.json();
           setRecentActivities(activityData);
         }
+
+        // Fetch real-time course completion rate
+        const completionResponse = await fetch('/api/admin/average-student-progress');
+        if (completionResponse.ok) {
+          const completionData = await completionResponse.json();
+          setCompletionData({
+            completed: completionData.overall?.completed || 0,
+            in_progress: completionData.overall?.in_progress || 0
+          });
+          setTopPerformers(completionData.top_performers || []);
+        }
       } catch (error) {
         console.error('Error fetching dashboard charts:', error);
       }
@@ -139,7 +155,7 @@ const DashboardView = () => {
 
     fetchDashboardCharts();
     
-    // Refresh every 30 seconds
+    // Refresh every 30 seconds for real-time updates
     const interval = setInterval(fetchDashboardCharts, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -181,10 +197,43 @@ const DashboardView = () => {
     labels: ["Completed", "In Progress"],
     datasets: [
       {
-        data: [75, 25],
+        data: [completionData.completed, completionData.in_progress],
         backgroundColor: ["#22c55e", "#1e293b"],
+        borderWidth: 0,
       },
     ],
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          color: '#e2e8f0',
+          font: {
+            size: 12
+          },
+          padding: 15,
+          usePointStyle: true,
+          pointStyle: 'rect',
+          boxWidth: 12,
+          boxHeight: 12,
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            return `${label}: ${value}%`;
+          }
+        }
+      }
+    },
+    cutout: '60%',
   };
 
   const summaryCards = [
@@ -298,7 +347,20 @@ const DashboardView = () => {
         </div>
         <div className="bg-[#161b22] p-5 rounded-xl border border-gray-800">
           <h3 className="text-gray-300 font-semibold mb-4">Average Course Completion Rate</h3>
-          <Doughnut data={doughnutData} />
+          <Doughnut data={doughnutData} options={doughnutOptions} />
+          {topPerformers.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-800">
+              <p className="text-xs text-gray-400 mb-2">🏆 Top Performers:</p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {topPerformers.slice(0, 5).map((student, idx) => (
+                  <div key={student.student_id} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-300 truncate">{idx + 1}. {student.student_name}</span>
+                    <span className="text-green-400 font-semibold">{student.overall_progress}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
