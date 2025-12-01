@@ -111,14 +111,28 @@ export default function AuthWatcher() {
 
     const roleDisplay = userRole === 'teacher' ? 'Teacher' : 'Student';
 
-    let userName = user.firstName || user.fullName || user.username;
+    // Get user's name - prefer from userDetail, then Clerk user object
+    let userName = userDetail?.name || user.firstName || user.fullName || user.username;
     if (!userName && user.primaryEmailAddress?.emailAddress) {
       userName = extractFirstNameFromEmail(user.primaryEmailAddress.emailAddress);
     }
 
-    const welcomeMessage = userName
-      ? `Welcome back, ${roleDisplay} ${userName}!`
-      : `Welcome back, ${roleDisplay}!`;
+    // Determine if this is a new signup or returning user
+    const isNewUser = userDetail?.isNewUser === true;
+    
+    // Create appropriate welcome message
+    let welcomeMessage;
+    if (isNewUser) {
+      // New user signup message
+      welcomeMessage = userName
+        ? `Welcome, ${roleDisplay} ${userName}!`
+        : `Welcome, ${roleDisplay}!`;
+    } else {
+      // Returning user sign-in message
+      welcomeMessage = userName
+        ? `Welcome back, ${roleDisplay} ${userName}!`
+        : `Welcome back, ${roleDisplay}!`;
+    }
 
     toast.success(welcomeMessage, {
       icon: roleDisplay === 'Teacher' ? '👨‍🏫' : '🎓',

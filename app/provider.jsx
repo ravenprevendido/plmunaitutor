@@ -72,7 +72,9 @@ const Provider = ({ children }) => {
       // STEP 3: Use the role from API response (which has the correct role from database)
       const finalRole = apiResponse?.role || pendingRole || 'student';
       console.log("🎯 FINAL ROLE FOR REDIRECT:", finalRole);
+      console.log("🆕 Is new user:", apiResponse?.isNewUser);
 
+      // Store userDetail with isNewUser flag for AuthWatcher
       setUserDetail(apiResponse);
 
       // Clean up
@@ -111,7 +113,10 @@ const Provider = ({ children }) => {
       if (response.ok) {
         const result = await response.json();
         console.log("✅ User synced to database:", result);
-        return result; // RETURN THE API RESPONSE
+        
+        // Add flag to indicate if this is a new signup (201) or sign-in (200)
+        const isNewUser = response.status === 201;
+        return { ...result, isNewUser }; // RETURN THE API RESPONSE WITH FLAG
       } else {
         // Handle error response
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
