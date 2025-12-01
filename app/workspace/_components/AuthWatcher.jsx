@@ -85,7 +85,7 @@ export default function AuthWatcher() {
 
   useEffect(() => {
     // Don't show welcome message if user is not loaded, doesn't exist, or we've already shown it
-    if (!isLoaded || !user || hasShownToast.current || !userRole) {
+    if (!isLoaded || !user || hasShownToast.current) {
       if (!isLoaded || !user) {
         hasShownToast.current = false;
         lastUserId.current = null;
@@ -95,29 +95,65 @@ export default function AuthWatcher() {
       return;
     }
 
-    // CRITICAL: Only show welcome message if userDetail exists and is valid
-    // This ensures the account was successfully created/validated in the database
-    // If userDetail is null/undefined, it means validation failed and user should be signed out
-    if (!userDetail) {
-      console.log("⏸️ AuthWatcher: UserDetail not available, skipping welcome message (account may be invalid)");
+    // Wait for userRole to be resolved
+    if (!userRole) {
       return;
     }
 
-    // Additional check: Make sure userDetail has a valid role
-    if (!userDetail.role) {
+    // Check if this is a sign-up (has pendingRole) vs sign-in
+    const hasPendingRole = (() => {
+      try {
+        return !!localStorage.getItem('pendingRole');
+      } catch {
+        return false;
+      }
+    })();
+
+    // For sign-up: MUST wait for userDetail (validation check)
+    // For sign-in: Can show toast even if userDetail is loading (it's a returning user)
+    if (hasPendingRole && !userDetail) {
+      console.log("⏸️ AuthWatcher: Waiting for userDetail (sign-up validation)");
+      return;
+    }
+
+    // If userDetail exists but has no role, skip (validation failed)
+    if (userDetail && !userDetail.role) {
       console.log("⏸️ AuthWatcher: UserDetail has no role, skipping welcome message");
       return;
     }
 
-    const roleDisplay = userRole === 'teacher' ? 'Teacher' : 'Student';
+    // For sign-in: Show toast immediately if we have role (don't wait for userDetail)
+    // For sign-up: Must wait for userDetail (validation check)
+    if (!hasPendingRole) {
+      // Sign-in case - show toast immediately with available data
+      const roleDisplay = userRole === 'teacher' ? 'Teacher' : 'Student';
+      let userName = userDetail?.name || user?.firstName || user?.fullName || user?.username;
+      if (!userName && user?.primaryEmailAddress?.emailAddress) {
+        userName = extractFirstNameFromEmail(user.primaryEmailAddress.emailAddress);
+      }
+      
+      const welcomeMessage = userName
+        ? `Welcome back, ${roleDisplay} ${userName}!`
+        : `Welcome back, ${roleDisplay}!`;
 
-    // Get user's name - prefer from userDetail, then Clerk user object
-    let userName = userDetail?.name || user.firstName || user.fullName || user.username;
-    if (!userName && user.primaryEmailAddress?.emailAddress) {
+      toast.success(welcomeMessage, {
+        icon: roleDisplay === 'Teacher' ? '👨‍🏫' : '🎓',
+        duration: 4000,
+        id: 'auth-welcome-toast',
+      });
+
+      hasShownToast.current = true;
+      return;
+    }
+
+    // Sign-up case - userDetail should be available now
+    const roleDisplay = userRole === 'teacher' ? 'Teacher' : 'Student';
+    let userName = userDetail?.name || user?.firstName || user?.fullName || user?.username;
+    if (!userName && user?.primaryEmailAddress?.emailAddress) {
       userName = extractFirstNameFromEmail(user.primaryEmailAddress.emailAddress);
     }
 
-    // Determine if this is a new signup or returning user
+    // Determine if this is a new signup
     const isNewUser = userDetail?.isNewUser === true;
     
     // Create appropriate welcome message
@@ -128,7 +164,7 @@ export default function AuthWatcher() {
         ? `Welcome, ${roleDisplay} ${userName}!`
         : `Welcome, ${roleDisplay}!`;
     } else {
-      // Returning user sign-in message
+      // Returning user sign-in message (shouldn't happen for sign-up, but handle it)
       welcomeMessage = userName
         ? `Welcome back, ${roleDisplay} ${userName}!`
         : `Welcome back, ${roleDisplay}!`;
