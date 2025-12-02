@@ -46,7 +46,7 @@ export default function AuthWatcher() {
           return;
         }
       } catch (error) {
-        console.warn('Unable to read pendingRole from localStorage', error);
+        // Unable to read pendingRole from localStorage
       }
 
       // 3. Fetch from API only once per session if needed
@@ -73,7 +73,7 @@ export default function AuthWatcher() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch user role for toast', error);
+        // Failed to fetch user role for toast
       }
 
       // 4. Default fallback
@@ -112,13 +112,11 @@ export default function AuthWatcher() {
     // For sign-up: MUST wait for userDetail (validation check)
     // For sign-in: Can show toast even if userDetail is loading (it's a returning user)
     if (hasPendingRole && !userDetail) {
-      console.log("⏸️ AuthWatcher: Waiting for userDetail (sign-up validation)");
       return;
     }
 
     // If userDetail exists but has no role, skip (validation failed)
     if (userDetail && !userDetail.role) {
-      console.log("⏸️ AuthWatcher: UserDetail has no role, skipping welcome message");
       return;
     }
 
@@ -181,7 +179,7 @@ export default function AuthWatcher() {
     try {
       localStorage.removeItem('pendingRole');
     } catch (error) {
-      console.warn('Unable to clear pendingRole from localStorage', error);
+      // Unable to clear pendingRole from localStorage
     }
   }, [isLoaded, user, userRole, userDetail]);
 

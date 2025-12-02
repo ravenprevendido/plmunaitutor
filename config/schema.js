@@ -11,9 +11,6 @@ export const usersTable = pgTable("users", {
   role: text("role").notNull().default("student"),
 
 })
-
-
-
 export const adminUsersTable = pgTable("admin_users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
@@ -95,6 +92,8 @@ export const enrollmentsTable = pgTable("enrollments", {
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });
+
+
 
 // Add these to your existing schema
 

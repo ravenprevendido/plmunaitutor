@@ -6,14 +6,11 @@ import { NextResponse } from 'next/server';
 // GET all teacher requests
 export async function GET() {
   try {
-    console.log("📋 Fetching all teacher requests...");
-    
     const requests = await db
       .select()
       .from(courseRequestsTable)
       .orderBy(courseRequestsTable.created_at);
     
-    console.log(`✅ Found ${requests.length} teacher requests`);
     return NextResponse.json(requests);
   } catch (error) {
     console.error('❌ Error fetching teacher requests:', error);
@@ -25,10 +22,6 @@ export async function GET() {
 export async function POST(request) {
   try {
     const { course_id, teacher_name, teacher_email, course_title, course_category } = await request.json();
-    
-    console.log("📝 Creating teacher request:", {
-      course_id, teacher_name, teacher_email, course_title, course_category
-    });
 
     // ✅ VALIDATION 1: Check if course exists
     const existingCourse = await db
@@ -97,8 +90,6 @@ export async function POST(request) {
       })
       .returning();
 
-    console.log("✅ Teacher request created:", newRequest[0]);
-
     return NextResponse.json(newRequest[0], { status: 201 });
 
   } catch (error) {
@@ -123,8 +114,6 @@ export async function PUT(request) {
         error: 'Invalid action. Must be "approved" or "rejected"' 
       }, { status: 400 });
     }
-
-    console.log(`🔄 Processing teacher request ${requestId} with action: ${action}`);
 
     // Get the request first
     const requestData = await db
@@ -210,8 +199,6 @@ export async function PUT(request) {
               status: 'active'
             })
             .where(eq(teachersTable.email, requestData.teacher_email));
-          
-          console.log(`✅ Updated existing teacher: ${requestData.teacher_name}`);
         } else {
           // Create new teacher
           await db.insert(teachersTable).values({
@@ -221,8 +208,6 @@ export async function PUT(request) {
             total_courses: 1,
             status: 'active'
           });
-          
-          console.log(`✅ Created new teacher: ${requestData.teacher_name}`);
         }
 
         // 4. Reject all other pending requests for this same course (FIXED)
@@ -236,9 +221,6 @@ export async function PUT(request) {
               ne(courseRequestsTable.id, requestId) // Use 'ne' instead of '!='
             )
           );
-
-        console.log(`✅ Course "${requestData.course_title}" assigned to ${requestData.teacher_name}`);
-        console.log(`✅ Rejected all other pending requests for this course`);
 
       } catch (dbError) {
         console.error('❌ Database error during approval:', dbError);
@@ -257,8 +239,6 @@ export async function PUT(request) {
         .update(courseRequestsTable)
         .set({ status: 'rejected' })
         .where(eq(courseRequestsTable.id, requestId));
-      
-      console.log(`❌ Teacher request rejected for ${requestData.teacher_name}`);
     }
 
     return NextResponse.json({ 
@@ -286,8 +266,6 @@ export async function DELETE(request) {
       }, { status: 400 });
     }
 
-    console.log(`🗑️ Deleting teacher request ${requestId}`);
-
     // Check if request exists
     const requestData = await db
       .select()
@@ -303,8 +281,6 @@ export async function DELETE(request) {
     await db
       .delete(courseRequestsTable)
       .where(eq(courseRequestsTable.id, requestId));
-
-    console.log(`✅ Teacher request deleted: ${requestData.teacher_name} for ${requestData.course_title}`);
     
     return NextResponse.json({ 
       message: 'Teacher request deleted successfully',

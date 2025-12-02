@@ -8,17 +8,13 @@ import { NextResponse } from "next/server";
 export async function POST(req) {
   let requestedRole = 'account'; // Default for error messages
   try {
-    console.log("🎯 API USER POST CALLED");
-    
     const user = await currentUser();
-    console.log("Clerk user:", user?.id);
     
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { email, name, role } = await req.json();
-    console.log("Request body:", { email, name, role });
     const safeName = name?.trim() || user.firstName || user.username || email?.split("@")[0] || "User";
     requestedRole = role || 'student';
     
@@ -42,11 +38,9 @@ export async function POST(req) {
     if (existingUser) {
       // If they're signing in with the same role, allow it
       if (existingUser.role === requestedRole || !requestedRole || !role) {
-        console.log("✅ User exists (SIGN IN):", existingUser);
         return NextResponse.json(existingUser, { status: 200 });
       }
       // If they're trying to sign in with a different role, prevent it
-      console.log(`❌ SECURITY: Email ${email} already exists as ${existingUser.role}, cannot create ${requestedRole} account`);
       return NextResponse.json({ 
         error: `The email you used to create the ${requestedRole} account has already been used.`
       }, { status: 409 });
@@ -55,14 +49,12 @@ export async function POST(req) {
     // Case 2: Email exists in teachersTable but not in usersTable
     // This prevents creating any account (student or teacher) with an email that's already used as a teacher
     if (existingTeacher) {
-      console.log(`❌ SECURITY: Email ${email} already exists as teacher, cannot create ${requestedRole} account`);
       return NextResponse.json({ 
         error: `The email you used to create the ${requestedRole} account has already been used.`
       }, { status: 409 });
     }
 
     // STEP 3: Create new user (SIGN UP)
-    console.log("🆕 Creating new user (SIGN UP)");
     const newUser = await db
       .insert(usersTable)
       .values({
@@ -72,7 +64,6 @@ export async function POST(req) {
         role: requestedRole,
       })
       .returning();
-    console.log("✅ New user created:", newUser[0]);
     return NextResponse.json(newUser[0], { status: 201 });
     
   } catch (error) {

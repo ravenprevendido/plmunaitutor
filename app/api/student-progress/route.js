@@ -75,16 +75,6 @@ export async function POST(request) {
       answers = body.answers;
     }
 
-    console.log("📝 Student progress update:", {
-      userId,
-      course_id,
-      lesson_id,
-      quiz_id,
-      assignment_id,
-      completed,
-      score
-    });
-
     // Validate required fields
     if (!course_id) {
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
@@ -194,8 +184,6 @@ export async function POST(request) {
         .returning();
     }
 
-    console.log("✅ Progress updated successfully:", result[0]);
-
     // Update enrollment progress for any completion (lesson, quiz, or assignment)
     if (completed && !existingProgress?.completed) {
       await updateEnrollmentProgress(userId, parseInt(course_id));
@@ -262,8 +250,6 @@ async function updateEnrollmentProgress(studentId, courseId) {
           eq(enrollmentsTable.course_id, courseId)
         )
       );
-
-    console.log(`📊 Updated progress for student ${studentId}: ${progress}% (${completedItems}/${totalItems} items)`);
 
   } catch (error) {
     console.error('Error updating enrollment progress:', error);

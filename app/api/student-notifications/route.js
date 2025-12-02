@@ -113,14 +113,6 @@ export async function POST(request) {
     const itemTitle = quiz_title || lesson_title || assignment_title || 'New Item';
     const notificationMessage = message || `New ${type}: ${itemTitle}`;
 
-    // Log notification creation for debugging
-    console.log(`📬 Creating notification for course ${course_id}:`);
-    console.log(`   - Student: ${student_id}`);
-    console.log(`   - Course: ${course_title} (ID: ${course_id})`);
-    console.log(`   - Teacher: ${teacher_name}`);
-    console.log(`   - Type: ${type}`);
-    console.log(`   - Item: ${itemTitle}`);
-
     // If teacher_email not provided, try to fetch it from course
     let finalTeacherEmail = teacher_email;
     if (!finalTeacherEmail && course_id) {
@@ -139,7 +131,7 @@ export async function POST(request) {
           finalTeacherEmail = courseData.teacher_email;
         }
       } catch (err) {
-        console.log('Could not fetch teacher email:', err);
+        // Could not fetch teacher email
       }
     }
 
@@ -179,14 +171,11 @@ export async function POST(request) {
           deadline: deadline,
           teacherName: teacher_name || 'Teacher'
         });
-        console.log(`✅ Email notification sent to ${student_email}`);
       } catch (emailError) {
         console.error('Error sending email notification (non-critical):', emailError);
         // Don't fail the notification creation if email fails
         // In-app notifications are the primary method and work without email
       }
-    } else if (student_email) {
-      console.log(`📧 Email not sent to ${student_email} - SMTP not configured (in-app notification created successfully)`);
     }
 
     return NextResponse.json(notificationWithEmail);

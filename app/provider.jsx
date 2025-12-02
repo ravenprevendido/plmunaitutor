@@ -4,6 +4,7 @@ import { useUser, useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { UserDetailContext } from '@/context/UserDetailContext';
+import toast from 'react-hot-toast';
 
 const Provider = ({ children }) => {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -14,19 +15,16 @@ const Provider = ({ children }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log("🔄 Provider: isLoaded =", isLoaded, "isSignedIn =", isSignedIn, "pathname =", pathname);
     
     if (!isLoaded) return;
     
     // Don't redirect if user is on dedicated auth pages - let them complete signup/signin first
     const isDedicatedAuthPage = pathname?.includes('/sign-in') || pathname?.includes('/sign-up');
     if (isDedicatedAuthPage) {
-      console.log("⏸️ User on dedicated auth page, skipping redirect");
       return;
     }
     
     if (isSignedIn && user && !hasHandledRedirect) {
-      console.log("✅ User authenticated:", user.id);
       handleUserRedirect();
 
       // add delay timer
@@ -46,7 +44,6 @@ const Provider = ({ children }) => {
       let pendingRole = null;
       try {
         pendingRole = localStorage.getItem('pendingRole');
-        console.log("🎯 Pending role from localStorage:", pendingRole);
       } catch (e) {
         pendingRole = null;
       }
@@ -58,10 +55,8 @@ const Provider = ({ children }) => {
         role: pendingRole // ✅ Use pendingRole, NOT hardcoded 'student'
       };
 
-      console.log("📤 Sending user data to API:", userData);
       // STEP 2: Sync to database
       const apiResponse = await syncUserToDatabase(userData);
-      console.log("📥 API response:", apiResponse);
 
       // Check if API call failed (returned null) - user will be signed out
       if (!apiResponse) {
@@ -71,8 +66,6 @@ const Provider = ({ children }) => {
 
       // STEP 3: Use the role from API response (which has the correct role from database)
       const finalRole = apiResponse?.role || pendingRole || 'student';
-      console.log("🎯 FINAL ROLE FOR REDIRECT:", finalRole);
-      console.log("🆕 Is new user:", apiResponse?.isNewUser);
 
       // Store userDetail with isNewUser flag for AuthWatcher
       setUserDetail(apiResponse);
@@ -80,17 +73,12 @@ const Provider = ({ children }) => {
       // Clean up
       try {
         localStorage.removeItem('pendingRole');
-        console.log("🗑️ Cleaned up pendingRole");
       } catch (e) {}
 
       // REDIRECT
-      console.log("🔄 Redirecting with role:", finalRole);
-      
       if (finalRole === 'teacher') {
-        console.log("🎯 Redirecting TEACHER to /teacher");
         router.replace('/teacher');
       } else {
-        console.log("🎓 Redirecting STUDENT to /workspace");
         router.replace('/workspace');
       }
       
@@ -102,8 +90,6 @@ const Provider = ({ children }) => {
 
   const syncUserToDatabase = async (userData) => {
     try {
-      console.log("🔄 Syncing user to database...");
-      
       const response = await fetch('/api/user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,7 +98,6 @@ const Provider = ({ children }) => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log("✅ User synced to database:", result);
         
         // Add flag to indicate if this is a new signup (201) or sign-in (200)
         const isNewUser = response.status === 201;
@@ -123,13 +108,31 @@ const Provider = ({ children }) => {
         const errorMessage = errorData.error || 'Failed to create account';
         console.error("❌ API call failed:", errorMessage);
         
-        // Display error message to user
-        alert(errorMessage);
+        // Display error message to user with toast notification
+        toast.error(errorMessage, {
+          duration: 5000,
+          position: 'top-right',
+          style: {
+            background: '#1f2937',
+            color: '#fff',
+            border: '2px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            fontSize: '14px',
+            fontWeight: '500',
+            boxShadow: '0 10px 25px rgba(239, 68, 68, 0.4)',
+            maxWidth: '400px',
+          },
+          icon: '⚠️',
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#fff',
+          },
+        });
         
         // Sign out the user immediately since they can't proceed with this account
         if (signOut) {
           await signOut();
-          console.log("🚪 User signed out due to email conflict");
         }
         
         // Return null to indicate failure
@@ -137,7 +140,28 @@ const Provider = ({ children }) => {
       }
     } catch (error) {
       console.error("❌ Failed to sync user:", error);
-      alert("An error occurred while creating your account. Please try again.");
+      
+      // Display error message to user with toast notification
+      toast.error("An error occurred while creating your account. Please try again.", {
+        duration: 5000,
+        position: 'top-right',
+        style: {
+          background: '#1f2937',
+          color: '#fff',
+          border: '2px solid #ef4444',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          fontSize: '14px',
+          fontWeight: '500',
+          boxShadow: '0 10px 25px rgba(239, 68, 68, 0.4)',
+          maxWidth: '400px',
+        },
+        icon: '⚠️',
+        iconTheme: {
+          primary: '#ef4444',
+          secondary: '#fff',
+        },
+      });
       
       // Sign out on error
       if (signOut) {

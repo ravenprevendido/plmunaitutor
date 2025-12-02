@@ -24,6 +24,7 @@ import CourseManagement from "../components/CourseManagement";
 import EnrollmentManagement from "../components/EnrollmentManagement";
 import StudentManagement from "../components/StudentManagement";
 import AnalyticsManage from "../components/AnalyticsManage";
+import AdminSettings from "../components/AdminSettings";
 
 ChartJS.register(
   BarElement,
@@ -63,7 +64,7 @@ const AdminDashboard = () => {
         try {
           setAdminUser(JSON.parse(userData));
         } catch (error) {
-          console.error('Error parsing user data:', error);
+          // Error parsing user data
         }
       }
 
@@ -81,13 +82,11 @@ const AdminDashboard = () => {
 
     // Set up real-time updates
     const handleTeacherRequestUpdate = () => {
-      console.log("🔄 Teacher request update received");
       fetchTeacherRequests();
       fetchActiveTeachers();
     };
 
     const handleNewTeacherRequest = (event) => {
-      console.log("📨 New teacher request received:", event.detail);
       const newRequest = event.detail;
       
       // Add to notifications
@@ -108,7 +107,6 @@ const AdminDashboard = () => {
 
     // Listen for teacher login activity (you can trigger this from teacher pages)
     const handleTeacherActivity = (event) => {
-      console.log("👨‍🏫 Teacher activity detected:", event.detail);
       const { teacherName, action, courseTitle } = event.detail;
       
       let notificationText = "";
@@ -207,7 +205,7 @@ const AdminDashboard = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching teacher requests:', error);
+      // Error fetching teacher requests
     }
   };
 
@@ -221,7 +219,7 @@ const AdminDashboard = () => {
         setActiveTeachers(active);
       }
     } catch (error) {
-      console.error('Error fetching teachers:', error);
+      // Error fetching teachers
     }
   };
 
@@ -258,7 +256,7 @@ const AdminDashboard = () => {
         saveNotifications(defaultNotifications);
       }
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      // Error loading notifications
     }
   };
 
@@ -267,7 +265,7 @@ const AdminDashboard = () => {
     try {
       localStorage.setItem('adminNotifications', JSON.stringify(notifs));
     } catch (error) {
-      console.error('Error saving notifications:', error);
+      // Error saving notifications
     }
   };
 
@@ -388,7 +386,8 @@ const AdminDashboard = () => {
     analytics: <AnalyticsManage/>,
     teacher: <TeacherManagement/>,
     enrollment: <EnrollmentManagement/>,
-    student: <StudentManagement/>
+    student: <StudentManagement/>,
+    tutor: <AdminSettings/>
   };
 
   // Format time for notifications

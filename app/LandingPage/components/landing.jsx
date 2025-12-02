@@ -37,9 +37,8 @@ export default function LandingHome({ setShowSignIn }) {
   const handleRoleSelection = (role) => {
     try {
       localStorage.setItem('pendingRole', role);
-      console.log(`🎯 Role selected: ${role}`);
     } catch (e) {
-      console.error("Failed to set role in localStorage:", e);
+      // Failed to set role in localStorage
     }
   };
 
@@ -436,7 +435,7 @@ export default function LandingHome({ setShowSignIn }) {
                     <h3 className="text-xl font-bold text-white mb-2">Join as Student</h3>
                     <p className="text-sm text-gray-400 mb-4">Start learning with AI-powered courses</p>
                     <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                      Get Started Free
+                      Get Started 
                     </Button>
                   </div>
                 </div>

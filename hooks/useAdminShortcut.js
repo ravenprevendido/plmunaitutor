@@ -15,6 +15,8 @@ export function useAdminShortcut() {
       }
     };
 
+
+    
     document.addEventListener('keydown', handleKeyPress);
     return () => {
       document.removeEventListener('keydown', handleKeyPress);

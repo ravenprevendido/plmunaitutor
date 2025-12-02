@@ -12,7 +12,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
-    console.log("📊 Fetching average student progress for admin");
+    
 
     // Get all courses
     const allCourses = await db

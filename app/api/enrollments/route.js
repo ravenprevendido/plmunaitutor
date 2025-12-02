@@ -38,13 +38,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log("📝 Creating enrollment request:", {
-      student_id: userId,
-      course_id,
-      student_name,
-      student_email
-    });
-
     // Check if course exists and get teacher info
     const course = await db
       .select({
@@ -96,9 +89,6 @@ export async function POST(request) {
         progress: 0
       })
       .returning();
-
-    console.log("✅ Enrollment request created:", newEnrollment[0]);
-    console.log(`🔔 New enrollment request from ${student_name} for ${course.title}`);
 
     return NextResponse.json(newEnrollment[0], { status: 201 });
 

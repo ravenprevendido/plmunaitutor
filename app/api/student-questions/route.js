@@ -15,8 +15,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log("💬 Saving student question:", { userId, question, subject });
-
     // Get student info from Clerk (you might want to get this from your users table)
     const user = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
       headers: {
@@ -41,7 +39,6 @@ export async function POST(request) {
       })
       .returning();
 
-    console.log("✅ Student question saved:", studentQuestion[0]);
     return NextResponse.json(studentQuestion[0], { status: 201 });
 
   } catch (error) {

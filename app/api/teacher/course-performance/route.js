@@ -18,8 +18,6 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log("📊 Fetching course performance data for teacher:", userId);
-
     // Get teacher's email
     const teacher = await db
       .select({
