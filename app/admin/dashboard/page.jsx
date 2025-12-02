@@ -49,6 +49,32 @@ const AdminDashboard = () => {
   const [activeTeachers, setActiveTeachers] = useState([]);
   const router = useRouter();
 
+  // Check admin access token on mount
+  useEffect(() => {
+    const checkAdminAccess = () => {
+      try {
+        const storedToken = sessionStorage.getItem('adminAccessToken');
+        const tokenExpiry = sessionStorage.getItem('adminTokenExpiry');
+        
+        // Check if token exists and is valid
+        const hasValidToken = !!storedToken;
+        const isTokenExpired = tokenExpiry && Date.now() > parseInt(tokenExpiry);
+        
+        if (!hasValidToken || isTokenExpired) {
+          // No valid token - redirect to home
+          sessionStorage.removeItem('adminAccessToken');
+          sessionStorage.removeItem('adminTokenExpiry');
+          router.replace('/');
+          return;
+        }
+      } catch (error) {
+        router.replace('/');
+      }
+    };
+
+    checkAdminAccess();
+  }, [router]);
+
   // Get admin user data from localStorage
   useEffect(() => {
     const checkAuth = () => {
@@ -354,6 +380,9 @@ const AdminDashboard = () => {
     localStorage.removeItem('adminLoggedIn');
     localStorage.removeItem('adminUser');
     localStorage.removeItem('adminNotifications');
+    // Clear admin access token
+    sessionStorage.removeItem('adminAccessToken');
+    sessionStorage.removeItem('adminTokenExpiry');
     toast.success("Logged out successfully!", {
       icon: '👋',
       style: {
@@ -361,7 +390,7 @@ const AdminDashboard = () => {
         color: "#fff",
       }
     });
-    router.push('/admin');
+    router.push('/');
   };
 
   // Close dropdowns when clicking outside

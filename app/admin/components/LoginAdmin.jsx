@@ -1,7 +1,7 @@
 // components/AdminLoginForm.jsx
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 
 export default function AdminLoginForm() {
@@ -10,7 +10,81 @@ export default function AdminLoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check for valid admin access token
+  useEffect(() => {
+    const checkToken = () => {
+      try {
+        const urlToken = searchParams.get('token');
+        const storedToken = sessionStorage.getItem('adminAccessToken');
+        const tokenExpiry = sessionStorage.getItem('adminTokenExpiry');
+        
+        // If URL token exists, store it immediately
+        if (urlToken) {
+          const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
+          try {
+            sessionStorage.setItem('adminAccessToken', urlToken);
+            sessionStorage.setItem('adminTokenExpiry', expiresAt.toString());
+          } catch (e) {
+            console.error('Failed to store token:', e);
+          }
+        }
+        
+        // Small delay to ensure sessionStorage is ready
+        setTimeout(() => {
+          try {
+            const finalStoredToken = sessionStorage.getItem('adminAccessToken');
+            const finalTokenExpiry = sessionStorage.getItem('adminTokenExpiry');
+            
+            // Allow if URL token exists OR if stored token exists
+            const hasUrlToken = !!urlToken;
+            const hasStoredToken = !!finalStoredToken;
+            const hasValidToken = hasUrlToken || hasStoredToken;
+            const isTokenExpired = finalTokenExpiry && Date.now() > parseInt(finalTokenExpiry);
+            
+            if (hasValidToken && !isTokenExpired) {
+              // Token is valid - allow access to login form
+              setIsAuthorized(true);
+              
+              // Clean up URL token
+              if (urlToken) {
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, '', newUrl);
+              }
+            } else {
+              // No valid token - redirect to home
+              sessionStorage.removeItem('adminAccessToken');
+              sessionStorage.removeItem('adminTokenExpiry');
+              router.replace('/');
+            }
+          } catch (error) {
+            console.error('Token check error:', error);
+            router.replace('/');
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Token validation error:', error);
+        router.replace('/');
+      }
+    };
+
+    checkToken();
+  }, [router, searchParams]);
+
+  // Don't render login form if not authorized
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

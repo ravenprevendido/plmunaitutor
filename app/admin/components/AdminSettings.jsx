@@ -13,7 +13,10 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Plus,
+  Trash2,
+  Network
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -21,6 +24,11 @@ const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState("system");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [currentIP, setCurrentIP] = useState('');
+  const [ipWhitelist, setIpWhitelist] = useState([]);
+  const [newIP, setNewIP] = useState('');
+  const [newIPDescription, setNewIPDescription] = useState('');
+  const [loadingIPs, setLoadingIPs] = useState(false);
   const [settings, setSettings] = useState({
     // System Settings
     system: {
@@ -97,7 +105,128 @@ const AdminSettings = () => {
 
   useEffect(() => {
     loadSettings();
+    loadIPWhitelist();
   }, []);
+
+  const loadIPWhitelist = async () => {
+    setLoadingIPs(true);
+    try {
+      const response = await fetch('/api/admin/ip-whitelist');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentIP(data.currentIP);
+        setIpWhitelist(data.whitelistedIPs || []);
+      }
+    } catch (error) {
+      toast.error('Failed to load IP whitelist');
+    } finally {
+      setLoadingIPs(false);
+    }
+  };
+
+  const addCurrentIPToWhitelist = async () => {
+    if (!currentIP) {
+      toast.error('Unable to detect your IP address');
+      return;
+    }
+
+    try {
+      const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+      const response = await fetch('/api/admin/ip-whitelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ip_address: currentIP,
+          description: 'My Main Admin Device',
+          added_by: adminUser.email || 'admin',
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Your device has been added to the whitelist!');
+        loadIPWhitelist();
+      } else {
+        toast.error('Failed to add IP to whitelist');
+      }
+    } catch (error) {
+      toast.error('Error adding IP to whitelist');
+    }
+  };
+
+  const addIPToWhitelist = async () => {
+    if (!newIP.trim()) {
+      toast.error('Please enter an IP address');
+      return;
+    }
+
+    try {
+      const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+      const response = await fetch('/api/admin/ip-whitelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ip_address: newIP.trim(),
+          description: newIPDescription.trim() || 'Added via admin settings',
+          added_by: adminUser.email || 'admin',
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('IP address added to whitelist');
+        setNewIP('');
+        setNewIPDescription('');
+        loadIPWhitelist();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to add IP to whitelist');
+      }
+    } catch (error) {
+      toast.error('Error adding IP to whitelist');
+    }
+  };
+
+  const removeIPFromWhitelist = async (id) => {
+    if (!confirm('Are you sure you want to remove this IP from the whitelist?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/ip-whitelist?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('IP address removed from whitelist');
+        loadIPWhitelist();
+      } else {
+        toast.error('Failed to remove IP from whitelist');
+      }
+    } catch (error) {
+      toast.error('Error removing IP from whitelist');
+    }
+  };
+
+  const toggleIPStatus = async (id, currentStatus) => {
+    try {
+      const response = await fetch('/api/admin/ip-whitelist', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          is_active: !currentStatus,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(`IP address ${!currentStatus ? 'enabled' : 'disabled'}`);
+        loadIPWhitelist();
+      } else {
+        toast.error('Failed to update IP status');
+      }
+    } catch (error) {
+      toast.error('Error updating IP status');
+    }
+  };
 
   const loadSettings = async () => {
     setLoading(true);
@@ -763,6 +892,158 @@ const AdminSettings = () => {
                         />
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* IP Whitelist Management */}
+                <div className="mt-8 pt-8 border-t border-gray-800">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Network className="w-5 h-5 text-green-400" />
+                    <h3 className="text-xl font-semibold text-green-400">Admin Access IP Whitelist</h3>
+                  </div>
+                  <p className="text-sm text-gray-400 mb-6">
+                    Only devices with whitelisted IP addresses can access admin via Ctrl+P shortcut. 
+                    Direct URL access to /admin is always blocked.
+                  </p>
+
+                  {/* Current IP Display */}
+                  {currentIP && (
+                    <div className="p-4 bg-[#0d1117] rounded-lg border border-gray-700 mb-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-400 mb-1">Your Current IP Address</p>
+                          <p className="text-lg font-mono text-green-400">{currentIP}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {ipWhitelist.some(ip => ip.ip_address === currentIP && ip.is_active) 
+                              ? '✅ This device is whitelisted' 
+                              : '⚠️ This device is not whitelisted'}
+                          </p>
+                        </div>
+                        {!ipWhitelist.some(ip => ip.ip_address === currentIP && ip.is_active) && (
+                          <button
+                            onClick={addCurrentIPToWhitelist}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add This Device
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Add New IP */}
+                  <div className="p-4 bg-[#0d1117] rounded-lg border border-gray-700 mb-6">
+                    <h4 className="font-medium mb-4">Add IP Address to Whitelist</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">IP Address</label>
+                        <input
+                          type="text"
+                          value={newIP}
+                          onChange={(e) => setNewIP(e.target.value)}
+                          placeholder="192.168.1.1 or 2001:0db8:85a3::8a2e:0370:7334"
+                          className="w-full px-4 py-2 bg-[#161b22] border border-gray-700 rounded-lg focus:outline-none focus:border-green-500 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Description (Optional)</label>
+                        <input
+                          type="text"
+                          value={newIPDescription}
+                          onChange={(e) => setNewIPDescription(e.target.value)}
+                          placeholder="e.g., Teacher John's Device, Main Admin Laptop"
+                          className="w-full px-4 py-2 bg-[#161b22] border border-gray-700 rounded-lg focus:outline-none focus:border-green-500 text-white"
+                        />
+                      </div>
+                      <button
+                        onClick={addIPToWhitelist}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add IP Address
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Whitelisted IPs List */}
+                  <div className="p-4 bg-[#0d1117] rounded-lg border border-gray-700">
+                    <h4 className="font-medium mb-4">Whitelisted IP Addresses</h4>
+                    {loadingIPs ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-green-500" />
+                      </div>
+                    ) : ipWhitelist.length === 0 ? (
+                      <div className="text-center py-8 text-gray-400">
+                        <Network className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No IP addresses whitelisted yet</p>
+                        <p className="text-xs mt-1">Add your device IP to enable Ctrl+P admin access</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {ipWhitelist.map((ip) => (
+                          <div
+                            key={ip.id}
+                            className={`p-4 rounded-lg border ${
+                              ip.is_active 
+                                ? 'bg-green-500/10 border-green-500/30' 
+                                : 'bg-gray-800/50 border-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-mono text-green-400 font-semibold">{ip.ip_address}</span>
+                                  {ip.ip_address === currentIP && (
+                                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">
+                                      Current Device
+                                    </span>
+                                  )}
+                                  {!ip.is_active && (
+                                    <span className="px-2 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded">
+                                      Disabled
+                                    </span>
+                                  )}
+                                </div>
+                                {ip.description && (
+                                  <p className="text-sm text-gray-400">{ip.description}</p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Added by {ip.added_by || 'admin'} • {new Date(ip.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => toggleIPStatus(ip.id, ip.is_active)}
+                                  className={`px-3 py-1 rounded text-xs transition-colors ${
+                                    ip.is_active
+                                      ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+                                      : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                  }`}
+                                >
+                                  {ip.is_active ? 'Disable' : 'Enable'}
+                                </button>
+                                <button
+                                  onClick={() => removeIPFromWhitelist(ip.id)}
+                                  className="p-2 text-red-400 hover:bg-red-500/20 rounded transition-colors"
+                                  title="Remove IP"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-sm text-blue-400">
+                      <AlertCircle className="inline w-4 h-4 mr-2" />
+                      <strong>Security Note:</strong> Only whitelisted IP addresses can use Ctrl+P to access admin. 
+                      Direct URL access to /admin is completely blocked regardless of IP.
+                    </p>
                   </div>
                 </div>
               </div>

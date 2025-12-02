@@ -18,18 +18,24 @@ const Provider = ({ children }) => {
     
     if (!isLoaded) return;
     
-    // Don't redirect if user is on dedicated auth pages - let them complete signup/signin first
+    // Don't redirect if user is on dedicated auth pages or admin routes
     const isDedicatedAuthPage = pathname?.includes('/sign-in') || pathname?.includes('/sign-up');
-    if (isDedicatedAuthPage) {
-      return;
+    const isAdminRoute = pathname?.startsWith('/admin');
+    
+    // Always skip redirects for admin routes (they use custom authentication)
+    if (isDedicatedAuthPage || isAdminRoute) {
+      return; // Skip redirects for auth pages and admin routes
     }
     
-    if (isSignedIn && user && !hasHandledRedirect) {
+    // Only redirect if user is signed in and not on admin/auth pages
+    if (isSignedIn && user && !hasHandledRedirect && !isAdminRoute) {
       handleUserRedirect();
 
       // add delay timer
       const timer = setTimeout(() => {
-        handleUserRedirect();
+        if (!pathname?.startsWith('/admin')) {
+          handleUserRedirect();
+        }
       }, 1000)
 
       return () => clearTimeout(timer)
@@ -96,6 +102,8 @@ const Provider = ({ children }) => {
         body: JSON.stringify(userData),
       });
 
+
+        
       if (response.ok) {
         const result = await response.json();
         

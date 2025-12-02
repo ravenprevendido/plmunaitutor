@@ -232,3 +232,14 @@ export const studentQuestionsTable = pgTable('student_questions', {
   is_common: boolean('is_common').default(false),
   asked_at: timestamp('asked_at').defaultNow(),
 });
+
+// IP Whitelist for Admin Access
+export const adminIpWhitelistTable = pgTable('admin_ip_whitelist', {
+  id: serial('id').primaryKey(),
+  ip_address: varchar('ip_address', { length: 45 }).notNull().unique(), // IPv4 or IPv6
+  description: varchar('description', { length: 255 }), // e.g., "Main Admin Device", "Teacher John's Device"
+  added_by: varchar('added_by', { length: 255 }), // Admin email who added it
+  is_active: boolean('is_active').default(true),
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
+});
