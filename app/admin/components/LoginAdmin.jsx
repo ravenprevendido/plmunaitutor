@@ -1,10 +1,10 @@
 // components/AdminLoginForm.jsx
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 
-export default function AdminLoginForm() {
+const AdminLoginFormContent = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -248,5 +248,22 @@ export default function AdminLoginForm() {
         <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
       </div>
     </div>
+  );
+};
+
+export default function AdminLoginForm() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <AdminLoginFormContent />
+    </Suspense>
   );
 }

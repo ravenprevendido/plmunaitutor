@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AdminLoginForm from './components/LoginAdmin';
 
-const AdminPage = () => {
+const AdminPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -102,6 +102,23 @@ const AdminPage = () => {
   }
 
   return <AdminLoginForm />;
+};
+
+const AdminPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <AdminPageContent />
+    </Suspense>
+  );
 };
 
 export default AdminPage;
