@@ -34,7 +34,7 @@
     "framer-motion": "^12.23.22",
     "lucide-react": "^0.511.0",
     "mime": "^4.0.7",
-    "next": "^15.5.4",
+    "next": "^16.0.7",
     "nodemailer": "^7.0.11",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.1",

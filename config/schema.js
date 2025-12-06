@@ -10,7 +10,11 @@ export const usersTable = pgTable("users", {
   clerk_id: varchar("clerk_id", {length: 255}).notNull(),
   role: text("role").notNull().default("student"),
 
+
+  
 })
+
+
 export const adminUsersTable = pgTable("admin_users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
